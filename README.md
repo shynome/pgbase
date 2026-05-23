@@ -1,10 +1,19 @@
 # 简介
 
-通过自定义 DBConnect 让 PocketBase 支持 postgres 实现并发写入
+成功实现了多写, 通过[自定义 DBConnect](https://pocketbase.io/docs/go-overview/#custom-sqlite-driver) 将 [PocketBase](https://github.com/pocketbase/pocketbase) 的存储后端由 sqlite 切换到 postgres
 
 # 原理
 
-使用 [polyglot](https://github.com/tobilg/polyglot#go) 将 sqlite 语句翻译成 postgres 语句
+使用 [Polyglot](https://github.com/tobilg/polyglot#go) 将 sqlite 语句翻译成 postgres 语句
+
+# 测试
+
+```sh
+docker-compose up -d
+cd ./example
+# download libpolyglot_sql_ffi.so in https://github.com/tobilg/polyglot/releases
+go run -v . serve
+```
 
 # 示例
 
@@ -38,8 +47,8 @@ func main() {
 	app := pocketbase.NewWithConfig(cfg)
 	try.To(app.Bootstrap())
 
-	// required! 
-	// required! 
+	// required!
+	// required!
 	// required!
 	// postgres support concurrent, reset max conns
 	if db, ok := app.NonconcurrentDB().(*dbx.DB); ok {
