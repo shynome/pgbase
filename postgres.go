@@ -192,7 +192,6 @@ func (c *Conn) transpile(query string) (q2 string, err error) {
 		log.Println(query)
 		panic("new sqlite_* query is not matched")
 	}
-	query = strings.Replace(query, ".`_rowid_` DESC", ".`rowid` DESC", 1)
 	q2, err = transpile(query, "sqlite", "postgres")
 	if err != nil {
 		return "", err
