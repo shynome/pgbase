@@ -44,6 +44,10 @@ var d = &Driver{
 	}),
 }
 
+func GetDefaultDriver() *Driver {
+	return d
+}
+
 func init() {
 	dbx.BuilderFuncMap["sqlite2pg"] = NewSqliteBuilder
 	sql.Register("sqlite2pg", d)
@@ -62,7 +66,7 @@ func (d *Driver) Open(name string) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Conn{conn}, nil
+	return &Conn{conn, d.Cache}, nil
 }
 
 func (d *Driver) OpenConnector(name string) (driver.Connector, error) {
@@ -71,11 +75,12 @@ func (d *Driver) OpenConnector(name string) (driver.Connector, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Connecter{cr}, nil
+	return &Connecter{cr, d.Cache}, nil
 }
 
 type Connecter struct {
 	driver.Connector
+	Cache *otter.Cache[string, string]
 }
 
 var _ driver.Connector = (*Connecter)(nil)
@@ -85,11 +90,12 @@ func (c *Connecter) Connect(ctx context.Context) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Conn{conn}, nil
+	return &Conn{conn, c.Cache}, nil
 }
 
 type Conn struct {
 	driver.Conn
+	Cache *otter.Cache[string, string]
 }
 
 var _ driver.Conn = (*Conn)(nil)
@@ -160,12 +166,12 @@ WHERE schemaname = current_schema()
   AND ($2::text IS NOT NULL OR TRUE)   -- 消耗多余的 $2`
 
 func (c *Conn) transpile(query string) (q2 string, err error) {
-	if q2, ok := Cache.GetIfPresent(query); ok {
+	if q2, ok := c.Cache.GetIfPresent(query); ok {
 		return q2, nil
 	}
 	defer func() {
 		if err == nil {
-			Cache.Set(query, q2)
+			c.Cache.Set(query, q2)
 		}
 	}()
 	switch query {
