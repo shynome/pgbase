@@ -1,0 +1,12 @@
+services:
+  db:
+    image: postgres:17-alpine@sha256:ff4ccc02b97e0ebb6b328ef9ff92522f95586f83be6801896b615088defc8ad2
+    network_mode: host
+    volumes:
+      - data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+
+volumes:
+  data:
