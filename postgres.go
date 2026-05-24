@@ -236,9 +236,7 @@ func (c *Conn) fixColTypes(query string) (string, error) {
 	default:
 		return query, nil
 	case
-		strings.Contains(query, "CREATE TABLE"),
-		strings.Contains(query, "DROP INDEX"):
-		// 仅转换这两个
+		strings.Contains(query, "CREATE TABLE"):
 	}
 	astJson, err := tc.Parse(query, "postgres")
 	if err != nil {
@@ -250,23 +248,6 @@ func (c *Conn) fixColTypes(query string) (string, error) {
 	}
 	var changed bool
 	for _, ast := range asts {
-		func() {
-			// 这个在官方修复后可以去掉
-			drop, ok := ast["drop_index"].(map[string]any)
-			if !ok {
-				return
-			}
-			n, ok := drop["name"].(map[string]any)
-			if !ok {
-				return
-			}
-			_, ok = n["quoted"].(bool)
-			if !ok {
-				return
-			}
-			n["quoted"] = true
-			changed = true
-		}()
 		func() {
 			table, ok := ast["create_table"].(map[string]any)
 			if !ok {
