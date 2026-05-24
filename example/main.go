@@ -21,15 +21,14 @@ func main() {
 			}
 			return core.DefaultDBConnect(dbPath)
 		},
-		DataMaxOpenConns: core.DefaultDataMaxOpenConns,
-		DataMaxIdleConns: core.DefaultDataMaxIdleConns,
 	}
 	app := pocketbase.NewWithConfig(cfg)
 	try.To(app.Bootstrap())
-	// postgres support concurrent, reset max conns
-	if db, ok := app.NonconcurrentDB().(*dbx.DB); ok {
-		db.DB().SetMaxOpenConns(cfg.DataMaxOpenConns)
-		db.DB().SetMaxIdleConns(cfg.DataMaxIdleConns)
-	}
+
+	// required!
+	// required!
+	// required!
+	pgbase.EnableConcurrentWrites(app, cfg)
+
 	try.To(app.Start())
 }
