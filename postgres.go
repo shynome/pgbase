@@ -94,15 +94,18 @@ func (d *Driver) OpenConnector(name string) (driver.Connector, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Connecter{cr, d.Base}, nil
+	return &Connecter{cr, d.Base, d}, nil
 }
 
 type Connecter struct {
 	driver.Connector
 	*Base
+	driver *Driver
 }
 
 var _ driver.Connector = (*Connecter)(nil)
+
+func (c *Connecter) Driver() driver.Driver { return c.driver }
 
 func (c *Connecter) Connect(ctx context.Context) (driver.Conn, error) {
 	conn, err := c.Connector.Connect(ctx)
