@@ -39,9 +39,11 @@ func Open(dsn string) (*dbx.DB, error) {
 
 var d = &Driver{
 	Driver: stdlib.GetDefaultDriver(),
-	Cache: otter.Must(&otter.Options[string, string]{
-		MaximumSize: 1000,
-	}),
+	Base: &Base{
+		Cache: otter.Must(&otter.Options[string, string]{
+			MaximumSize: 1000,
+		}),
+	},
 }
 
 func GetDefaultDriver() *Driver {
@@ -55,7 +57,24 @@ func init() {
 
 type Driver struct {
 	driver.Driver
+	*Base
+}
+
+type Base struct {
 	Cache *otter.Cache[string, string]
+	tc    *polyglot.Client
+}
+
+func (b *Base) SetPolyglotClient(tc *polyglot.Client) {
+	b.tc = tc
+}
+
+func (b *Base) GetPolyglotClient() (*polyglot.Client, error) {
+	tc := b.tc
+	if tc != nil {
+		return tc, nil
+	}
+	return polyglot.DefaultClient()
 }
 
 var _ driver.Driver = (*Driver)(nil)
@@ -66,7 +85,7 @@ func (d *Driver) Open(name string) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Conn{conn, d.Cache}, nil
+	return &Conn{conn, d.Base}, nil
 }
 
 func (d *Driver) OpenConnector(name string) (driver.Connector, error) {
@@ -75,12 +94,12 @@ func (d *Driver) OpenConnector(name string) (driver.Connector, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Connecter{cr, d.Cache}, nil
+	return &Connecter{cr, d.Base}, nil
 }
 
 type Connecter struct {
 	driver.Connector
-	Cache *otter.Cache[string, string]
+	*Base
 }
 
 var _ driver.Connector = (*Connecter)(nil)
@@ -90,12 +109,12 @@ func (c *Connecter) Connect(ctx context.Context) (driver.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Conn{conn, c.Cache}, nil
+	return &Conn{conn, c.Base}, nil
 }
 
 type Conn struct {
 	driver.Conn
-	Cache *otter.Cache[string, string]
+	*Base
 }
 
 var _ driver.Conn = (*Conn)(nil)
@@ -192,18 +211,27 @@ func (c *Conn) transpile(query string) (q2 string, err error) {
 		log.Println(query)
 		panic("new sqlite_* query is not matched")
 	}
-	q2, err = transpile(query, "sqlite", "postgres")
+	tc, err := c.GetPolyglotClient()
 	if err != nil {
 		return "", err
 	}
-	q2, err = fixColTypes(q2)
+	ss, err := tc.Transpile(query, "sqlite", "postgres")
+	if err != nil {
+		return "", err
+	}
+	q2 = joinQuery(ss)
+	q2, err = c.fixColTypes(q2)
 	return q2, err
 }
 
 var ErrNoTranslatedQuery = fmt.Errorf("no translated query")
 var ErrBaseDriverNotExecer = fmt.Errorf("base driver don't support driver.ExecerContext")
 
-func fixColTypes(query string) (string, error) {
+func (c *Conn) fixColTypes(query string) (string, error) {
+	tc, err := c.GetPolyglotClient()
+	if err != nil {
+		return "", err
+	}
 	switch {
 	default:
 		return query, nil
@@ -212,7 +240,7 @@ func fixColTypes(query string) (string, error) {
 		strings.Contains(query, "DROP INDEX"):
 		// 仅转换这两个
 	}
-	astJson, err := polyglot.Parse(query, "postgres")
+	astJson, err := tc.Parse(query, "postgres")
 	if err != nil {
 		return "", err
 	}
@@ -302,21 +330,13 @@ func fixColTypes(query string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	query, err = getQ1(s)
+	query = joinQuery(s)
 	return query, err
 }
 
-func transpile(query string, s, t string) (string, error) {
-	ss, err := polyglot.Transpile(query, s, t)
-	if err != nil {
-		return "", err
-	}
-	return getQ1(ss)
-}
-
-func getQ1(ss []string) (string, error) {
+func joinQuery(ss []string) string {
 	q2 := strings.Join(ss, ";\n")
-	return q2, nil
+	return q2
 }
 
 func rowid(name string) map[string]any {
