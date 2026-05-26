@@ -1,3 +1,9 @@
+#  Achive
+
+pocketbase 是基于 sqlite 开发的, 并非适用于所有数据库, 有大量 hacker 专门是给 sqlite 用的, 作者也明确说了暂时不会考虑其他数据库, 所以这条路走不通, 还是 [fondoger/pocketbase] 的方案更好.
+
+对于需要多写的场景我的建议是混合 sqlite 和 pg 进行开发
+
 # 简介
 
 成功实现了多写, 通过[自定义 DBConnect](https://pocketbase.io/docs/go-overview/#custom-sqlite-driver) 将 [PocketBase](https://github.com/pocketbase/pocketbase) 的存储后端由 sqlite 切换到 postgres
@@ -58,4 +64,6 @@ func main() {
 
 # 参考
 
-- [fondoger/pocketbase](https://github.com/fondoger/pocketbase)
+- [fondoger/pocketbase]
+
+[fondoger/pocketbase]: https://github.com/fondoger/pocketbase
