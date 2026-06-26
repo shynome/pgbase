@@ -1,8 +1,10 @@
-#  Achive
+# Achive
 
 pocketbase 是基于 sqlite 开发的, 并非适用于所有数据库, 有大量 hacker 专门是给 sqlite 用的, 作者也明确说了暂时不会考虑其他数据库, 所以这条路走不通, 还是 [fondoger/pocketbase] 的方案更好.
 
-对于需要多写的场景我的建议是混合 sqlite 和 pg 进行开发
+<del>对于需要多写的场景我的建议是混合 sqlite 和 pg 进行开发</del>
+
+对于需要多写的场景我的建议是使用 [Turso Database](https://docs.turso.tech/sdk/go/reference), 完全适配
 
 # 简介
 
